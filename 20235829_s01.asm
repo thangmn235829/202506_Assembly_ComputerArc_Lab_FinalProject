@@ -8,7 +8,7 @@
 # this RISC-V program draws a moving ball on the Bitmap Display.
 # the player uses key to navigate through modes on the Menu,
 # and control the ball's speed and directions.
-# the ball can move in four directions: up, down, left, right,
+# the ball can move in one out of four directions: up, down, left, right,
 # and once it touches the wall, it bounces back.
 # you can run it on the RARS RISC-V simulator:
 # https://github.com/TheThirdOne/rars
@@ -72,7 +72,6 @@
 	SETTING_SCREEN_LINE_4:		.asciz	"Ball RGB color (blue, 0-255): "
 	SETTING_SCREEN_LINE_5:		.asciz	"Initial ball speed (60-1500): "
 	SETTING_SCREEN_LINE_6:		.asciz	"Speed increment (1-100): "
-	SETTING_SCREEN_ERROR:		.asciz	"ERROR: Invalid value. Please try again.\n"
 	SETTING_SCREEN_SAVE:		.asciz	"Settings saved\n"
 # quit interface
 	QUIT_SCREEN_LINE_1:		.asciz	"THANK YOU FOR PLAYING\n"
@@ -185,8 +184,7 @@ PRINT_MENU:
 # and whether the inputs and outputs are ready
 # t6: the number of characters in the cheat code to input correctly
 # to show the settings
-# a4: temporary saves 2 as the modulo for the s11 % 2 operation below
-# a3: result of the s11 % 2 operation below
+# a3: temporary saves 2 as the modulo for the s11 % 2 operation below
 READ_ENTRY:
 	ReadEntry_Init:
 		li  	s2, KEY_CODE
@@ -213,7 +211,7 @@ READ_ENTRY:
 	Direct:  
 		beq	t3, s6, START
 		beq	t3, s7, QUIT
-		rem	a3, s10, a4		# calculate s11 % 2 to check if the next character 
+		andi	a3, s10, 1		# calculate s11 % 2 to check if the next character 
 						# of the cheat code should be 7 or 2
 		beq	a3, zero, Case7
 		j	Case2
@@ -231,10 +229,95 @@ READ_ENTRY:
 		j	WaitForKey
 
 # -----------------------START subprogram------------------------
+# additional registers used:
+# s2 and s3 now saves the x and y coordinates of the pixel iterated through.
+# s4 and s5 now saves the x and y coordinates of the center of the circle,
+# and calculated and called only when needed.
+# s6, s9, s10, t6 saves the temporary 512, 870, 930, 4 respectively
 START:
-
+	Start_Init:
+		li	s6, 512
+		li	s9, 870
+		li	s10, 930
+		li	t6, 4
+		
+		li	a7, 4
+		la	a0, PLAY_SCREEN_LINE_1
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_2
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_3
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_4
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_5
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_6
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_7
+		ecall
+		
+		la	a0, PLAY_SCREEN_LINE_8
+		ecall
+	
+		la	a0, PLAY_SCREEN_LINE_9
+		ecall
+		
+		li	t5, MONITOR_SCREEN
+	Start_Loop:
+		li	s2, 0
+		li	s3, 0
+		jal	DrawCircle
+		
+		li	s2, 0
+		li	s3, 0
+		jal	DeleteCircle
+		
+		add	s0, s0, s1
+		j	Start_Loop
+	DrawCircle:
+		sub	s2, s2, s4
+		sub	s3, s3, s5
+		mul	s7, s2, s2
+		mul	s8, s3, s3
+		add	s7, s7, s8
+		add	s2, s2, s4
+		add	a3, s3, s5
+		mul	s11, s2, s6
+		add	s11, s11, s3
+		mul	s11, s11, t6
+		add	s11, s11, t5
+		blt	s7, s9, cont
+		blt	s10, s7, cont
+		sw	t0, 0(s11)
+	cont:
+		addi	s3, s3, 1
+		bne	s3, s6, DrawCircle
+		addi	s2, s2, 1
+		li	s3, 0
+		bne	s2, s6, DrawCircle
+		jr	ra
+	DeleteCircle:
+		mul	s11, s2, s6
+		add	s11, s11, s3
+		mul	s11, s11, t6
+		add	s11, s11, t5
+		sw	zero, 0(s11)
+		addi	s3, s3, 1
+		bne	s3, s6, DeleteCircle
+		addi	s2, s2, 1
+		li	s3, 0
+		bne	s2, s6, DeleteCircle
+		jr	ra
+		
 # ----------------------SETTINGS subprogram----------------------
-# additional register used:
+# additional registers used:
 # s6 to s10: now saves the value 255, 60, 1500, 1, 100 for comparison
 SETTINGS:
 	li	s6, 255
@@ -243,6 +326,7 @@ SETTINGS:
     	li	s9, 1
 	li	s10, 100
 	
+	li	a7, 4
 	la	a0, SEPARATOR
 	ecall
 	
@@ -265,6 +349,7 @@ SETTINGS:
 		and	t0, t0, a0
 	
 	Try2:
+		li	a7, 4
 		la	a0, SETTING_SCREEN_LINE_3
 		ecall
 	
@@ -278,6 +363,7 @@ SETTINGS:
 		or	t0, t0, a0
 		
 	Try3:
+		li	a7, 4
 		la	a0, SETTING_SCREEN_LINE_4
 		ecall
 	
@@ -290,6 +376,7 @@ SETTINGS:
 		or	t0, t0, a0
 		
 	Try4:
+		li	a7, 4
 		la	a0, SETTING_SCREEN_LINE_5
 		ecall
 		
@@ -302,6 +389,7 @@ SETTINGS:
 		add	t1, zero, a0
 		
 	Try5:
+		li	a7, 4
 		la	a0, SETTING_SCREEN_LINE_6
 		ecall
 		
@@ -312,6 +400,10 @@ SETTINGS:
 		blt	s10, a0, Try5
 		
 		add	t2, zero, a0
+	
+	li	a7, 4
+	la	a0, SETTING_SCREEN_SAVE
+	ecall
 	
 	j	PRINT_MENU
 
