@@ -47,7 +47,6 @@
 	MENU_SCREEN_LINE_5:		.asciz	"Version: 2025 Summer\n"
 	MENU_SCREEN_LINE_6: 		.asciz	"S: Start\n"
 	MENU_SCREEN_LINE_7:		.asciz	"Q: Quit\n"
-	MENU_SCREEN_LINE_SCR: 		.asciz	"(enter a secret cheat code to customize...)\n"
 # setting display on menu and play interface
 	MENU_SETTING_PART_1:		.asciz	"Current settings: ball color "
 	MENU_SETTING_PART_2:		.asciz	", initial speed "
@@ -153,9 +152,6 @@ PRINT_MENU:
 	la	a0, MENU_SCREEN_LINE_7
 	ecall
 	
-	la	a0, MENU_SCREEN_LINE_SCR
-	ecall
-	
 	jal	PRINT_SETTINGS
 
 # ---------------------READ_ENTRY subprogram---------------------
@@ -193,10 +189,6 @@ READ_ENTRY:
     		li  	s5, DISPLAY_READY 
     		li	s6, 83
     		li	s7, 81
-    		li	s8, 55
-    		li	s9, 50
-		li	a4, 2
-		li	t6, 3
 	WaitForKey:
 		lw      t4, 0(s3)		# t4 = [s3] = KEY_READY 
 		beq     t4, zero, WaitForKey	# if t4 == 0 then poll 
@@ -211,21 +203,6 @@ READ_ENTRY:
 	Direct:  
 		beq	t3, s6, START
 		beq	t3, s7, QUIT
-		andi	a3, s10, 1		# calculate s11 % 2 to check if the next character 
-						# of the cheat code should be 7 or 2
-		beq	a3, zero, Case7
-		j	Case2
-	Case7:
-		bne	t3, s8, Reset
-		addi	s10, s0, 1
-		beq	s10, t6, SETTINGS
-		j	WaitForKey
-	Case2:
-		bne	t3, s9, Reset
-		addi	s10, s10, 1
-		j	WaitForKey
-	Reset:
-		add	s10, zero, zero
 		j	WaitForKey
 
 # -----------------------START subprogram------------------------
@@ -233,13 +210,14 @@ READ_ENTRY:
 # s2 and s3 now saves the x and y coordinates of the pixel iterated through.
 # s4 and s5 now saves the x and y coordinates of the center of the circle,
 # and calculated and called only when needed.
-# s6, s9, s10, t6 saves the temporary 512, 870, 930, 4 respectively
+# s6, s9, s10, t6, t5 saves the temporary 512, 870, 930, 4, 20 respectively
 START:
 	Start_Init:
 		li	s6, 512
 		li	s9, 870
 		li	s10, 930
 		li	t6, 4
+		li	t5, 20
 		
 		li	a7, 4
 		la	a0, PLAY_SCREEN_LINE_1
@@ -271,14 +249,31 @@ START:
 		
 		li	t5, MONITOR_SCREEN
 	Start_Loop:
-		li	s2, 0
-		li	s3, 0
+		srli	s4, s0, 9
+		andi	s5, s0, 0x1FF
+		li	s2, -30
+		li	s3, -30
+		li	t2, 30
+		li	t3, 30
+		add	s2, s2, s4
+		add	t2, t2, s4
+		add	s3, s3, s5
+		add	t3, t3, t5
 		jal	DrawCircle
 		
-		li	s2, 0
-		li	s3, 0
+		li	s2, -30
+		li	s3, -30
+		li	t2, 30
+		li	t3, 30
+		add	s2, s2, s4
+		add	t2, t2, s4
+		add	s3, s3, s5
+		add	t3, t3, t5
 		jal	DeleteCircle
 		
+		div	t1, t1, t5
+		mul	s1, s1, t1
+		mul	t1, t1, t5
 		add	s0, s0, s1
 		j	Start_Loop
 	DrawCircle:
@@ -288,7 +283,7 @@ START:
 		mul	s8, s3, s3
 		add	s7, s7, s8
 		add	s2, s2, s4
-		add	a3, s3, s5
+		add	s3, s3, s5
 		mul	s11, s2, s6
 		add	s11, s11, s3
 		mul	s11, s11, t6
@@ -298,10 +293,11 @@ START:
 		sw	t0, 0(s11)
 	cont:
 		addi	s3, s3, 1
-		bne	s3, s6, DrawCircle
+		bne	s3, s5, DrawCircle
 		addi	s2, s2, 1
-		li	s3, 0
-		bne	s2, s6, DrawCircle
+		li	s3, -60
+		add	s3, s3, s5
+		bne	s2, s4, DrawCircle
 		jr	ra
 	DeleteCircle:
 		mul	s11, s2, s6
