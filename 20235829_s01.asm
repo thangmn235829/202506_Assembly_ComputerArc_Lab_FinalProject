@@ -10,6 +10,8 @@
 # and control the ball's speed and directions.
 # the ball can move in four directions: up, down, left, right,
 # and once it touches the ball, it bounces back.
+# you can run it on the RARS RISC-V simulator:
+# https://github.com/TheThirdOne/rars
 # ---------------------------------------------------------------------------
 # TOOLS FOR THIS PROGRAM
 # 1) Keyboard and Display MMIO Simulator
@@ -167,6 +169,7 @@ PRINT_MENU:
 # types a cheat code (for this program, 727).
 # in that case, the system directs to Settings screen.
 READ_ENTRY:
+
 	
 
 # ------------------------QUIT subprogram------------------------
