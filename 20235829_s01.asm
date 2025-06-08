@@ -29,8 +29,8 @@
 	PLAY_SCREEN_LINE_7:		.asciz	"X: decrease speed\n"
 	PLAY_SCREEN_LINE_8:		.asciz	"Q: quit the game\n"
 	PLAY_SCREEN_LINE_9:		.asciz	"R: return to Menu\n"
-	PLAY_SCREEN_ERROR_SPEED_DOWN:	.asciz	"ERROR: can't reduce speed beyond the limit (60px/frame)\n"
-	PLAY_SCREEN_ERROR_SPEED_UP:	.asciz	"ERROR: can't increase speed beyond the limit (1500px/frame)\n"
+	PLAY_SCREEN_ERROR_SPEED_DOWN:	.asciz	"ERROR: can't reduce speed beyond the limit (60px/s)\n"
+	PLAY_SCREEN_ERROR_SPEED_UP:	.asciz	"ERROR: can't increase speed beyond the limit (1500px/s)\n"
 # setting interface
 	SETTING_SCREEN_LINE_1:		.asciz	"GAME CONFIGURATION\n"
 	SETTING_SCREEN_LINE_2:		.asciz	"Ball RGB color (red, 0-255): "
