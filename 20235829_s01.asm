@@ -199,6 +199,8 @@ PRINT_MENU:
 # and whether the inputs and outputs are ready
 # t6: the number of characters in the cheat code to input correctly
 # to show the settings
+# a4: temporary saves 2 as the modulo for the s11 % 2 operation below
+# a3: result of the s11 % 2 operation below
 READ_ENTRY:
 	ReadEntry_Init:
 		li  	s2, KEY_CODE
