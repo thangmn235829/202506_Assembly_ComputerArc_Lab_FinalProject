@@ -16,6 +16,9 @@
 # TOOLS FOR THIS PROGRAM
 # 1) Keyboard and Display MMIO Simulator
 # simply open the tool and connect it to the program.
+# during menu or gameplay, always make sure the tool
+# reads the input keys from your keyboard.
+# (during configuration, input through the Run I/O window instead)
 # 2) Bitmap Display
 # please set both Unit Width and Unit Height to 1 (px),
 # and set both Display Width and Display Height to 512 (px),
@@ -107,13 +110,8 @@
 # as this value gets added to a0,
 # unless it makes the ball meets the wall,
 # it will move the ball to the specific direction.
-# multiply one of the above value by an integer
+# multiply one of the above values by an integer
 # to make the ball move multiple pixels at once.
-
-# s2: saves the KEY_CODE address
-# s3: saves the KEY_READY address
-# s4: saves the DISPLAY_CODE address
-# s5: saves the DISPLAY_READY address
 
 # -------------------------MAIN program--------------------------
 MAIN:
@@ -136,10 +134,6 @@ INIT:
 	li	t2, 20
 	li	s0, 0x0001FEFF
 	li	s1, 0xFFFFFE00
-	li  	s2, KEY_CODE
-	li  	s3, KEY_READY 
-    	li  	s4, DISPLAY_CODE 
-    	li  	s5, DISPLAY_READY 
 	jr	ra
 
 # ---------------------PRINT_MENU subprogram---------------------
@@ -189,20 +183,69 @@ PRINT_MENU:
 # that directs to one of the modes, unless the player successfully
 # types a cheat code (for this program, 727).
 # in that case, the system directs to Settings screen.
+
+# additional registers used:
+# s2: saves the KEY_CODE address
+# s3: saves the KEY_READY address
+# s4: saves the DISPLAY_CODE address
+# s5: saves the DISPLAY_READY address
+# s6: saves the character "S" in ASCII
+# s7: saves the character "T" in ASCII
+# s8: saves the character "Q" in ASCII
+# s9: saves the character "7" in ASCII
+# s10: saves the character "2" in ASCII
+# s11: number of characters in the cheat code, "727", input correctly
+# t3, t4, t5: saves the result of polling
+# and whether the inputs and outputs are ready
+# t6: the number of characters in the cheat code to input correctly
+# to show the settings
 READ_ENTRY:
-WaitForKey:   
-	lw      t1, 0(a1)               # t1 = [a1] = KEY_READY 
-	beq     t1, zero, WaitForKey    # if t1 == 0 then Polling 
-ReadKey:      
-	lw      t0, 0(a0)               # t0 = [a0] = KEY_CODE 
-WaitForDis:   
-	lw      t2, 0(s1)               # t2 = [s1] = DISPLAY_READY 
-	beq     t2, zero, WaitForDis    # if t2 == 0 then polling  
-Branch:      
-	addi    t0, t0, 1               # change input key 
-ShowKey: 
-	sw      t0, 0(s0)               # show key                
-	j       READ_ENTRY
+	ReadEntry_Init:
+		li  	s2, KEY_CODE
+		li  	s3, KEY_READY 
+    		li  	s4, DISPLAY_CODE 
+    		li  	s5, DISPLAY_READY 
+    		li	s6, 83
+    		li	s7, 84
+    		li	s8, 81
+    		li	s9, 55
+    		li	s10, 50
+		li	a4, 2
+		li	t6, 3
+	WaitForKey:
+		lw      t4, 0(s3)		# t4 = [s3] = KEY_READY 
+		beq     t4, zero, WaitForKey	# if t4 == 0 then poll 
+	ReadKey:      
+		lw      t3, 0(s2)		# t3 = [s2] = KEY_CODE 
+	WaitForDis:   
+		lw      t5, 0(s5)		# t5 = [s5] = DISPLAY_READY 
+		beq     t5, zero, WaitForDis	# if t5 == 0 then poll
+	ShowKey:
+		sw	t3, 0(s4)
+	# directs the player to the specific mode based on the entered character
+	Direct:  
+		beq	t3, s6, START
+		beq	t3, s7, TUTORIAL
+		beq	t3, s8, QUIT
+		rem	a3, s11, a4		# calculate s11 % 2 to check if the next character 
+						# of the cheat code should be 7 or 2
+		beq	a3, zero, Case7
+		j	Case2
+	Case7:
+		bne	t3, s9, Reset
+		addi	s11, s11, 1
+		beq	s11, t6, SETTINGS
+		j	WaitForKey
+	Case2:
+		bne	t3, s10, Reset
+		addi	s11, s11, 1
+		j	WaitForKey
+	Reset:
+		add	s11, zero, zero
+		j	WaitForKey
+START:
+TUTORIAL:
+SETTINGS:
 
 # ------------------------QUIT subprogram------------------------
 # this subprogram prints the quit screen and exits the program.
