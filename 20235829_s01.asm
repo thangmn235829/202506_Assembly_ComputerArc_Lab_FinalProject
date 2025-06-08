@@ -5,11 +5,11 @@
 # Version: 2025 Summer
 # ---------------------------------------------------------------------------
 # OVERVIEW
-# this program draws a moving ball on the Bitmap Display.
-# player uses key to navigate through modes on the Menu,
+# this RISC-V program draws a moving ball on the Bitmap Display.
+# the player uses key to navigate through modes on the Menu,
 # and control the ball's speed and directions.
 # the ball can move in four directions: up, down, left, right,
-# and once it touches the ball, it bounces back.
+# and once it touches the wall, it bounces back.
 # you can run it on the RARS RISC-V simulator:
 # https://github.com/TheThirdOne/rars
 # ---------------------------------------------------------------------------
@@ -46,8 +46,7 @@
 	MENU_SCREEN_LINE_4:		.asciz	"For Assembly Language & Computer Architecture Lab\n"
 	MENU_SCREEN_LINE_5:		.asciz	"Version: 2025 Summer\n"
 	MENU_SCREEN_LINE_6: 		.asciz	"S: Start\n"
-	MENU_SCREEN_LINE_7:		.asciz	"T: Tutorial\n"
-	MENU_SCREEN_LINE_8:		.asciz	"Q: Quit\n"
+	MENU_SCREEN_LINE_7:		.asciz	"Q: Quit\n"
 	MENU_SCREEN_LINE_SCR: 		.asciz	"(enter a secret cheat code to customize...)\n"
 # setting display on menu and play interface
 	MENU_SETTING_PART_1:		.asciz	"Current settings: ball color "
@@ -68,12 +67,11 @@
 	PLAY_SCREEN_ERROR_SPEED_UP:	.asciz	"ERROR: can't increase speed beyond the limit (1500px/s)\n"
 # setting interface
 	SETTING_SCREEN_LINE_1:		.asciz	"GAME SETTINGS\n"
-	SETTING_SCREEN_LINE_2:		.asciz	"Press Q to quit this screen without saving\n"
-	SETTING_SCREEN_LINE_3:		.asciz	"Ball RGB color (red, 0-255): "
-	SETTING_SCREEN_LINE_4:		.asciz	"Ball RGB color (green, 0-255): "
-	SETTING_SCREEN_LINE_5:		.asciz	"Ball RGB color (blue, 0-255): "
-	SETTING_SCREEN_LINE_6:		.asciz	"Initial ball speed (60-1500): "
-	SETTING_SCREEN_LINE_7:		.asciz	"Speed increment (1-100): "
+	SETTING_SCREEN_LINE_2:		.asciz	"Ball RGB color (red, 0-255): "
+	SETTING_SCREEN_LINE_3:		.asciz	"Ball RGB color (green, 0-255): "
+	SETTING_SCREEN_LINE_4:		.asciz	"Ball RGB color (blue, 0-255): "
+	SETTING_SCREEN_LINE_5:		.asciz	"Initial ball speed (60-1500): "
+	SETTING_SCREEN_LINE_6:		.asciz	"Speed increment (1-100): "
 	SETTING_SCREEN_ERROR:		.asciz	"ERROR: Invalid value. Please try again.\n"
 	SETTING_SCREEN_SAVE:		.asciz	"Settings saved\n"
 # quit interface
@@ -113,13 +111,6 @@
 # multiply one of the above values by an integer
 # to make the ball move multiple pixels at once.
 
-# -------------------------MAIN program--------------------------
-MAIN:
-	jal	INIT
-	jal	PRINT_MENU
-	jal	READ_ENTRY
-	j	QUIT
-
 # ------------------------INIT subprogram------------------------
 # this subprogram initialize configuration values:
 # ball color (t0) = #FFFFFF (pure white),
@@ -134,11 +125,9 @@ INIT:
 	li	t2, 20
 	li	s0, 0x0001FEFF
 	li	s1, 0xFFFFFE00
-	jr	ra
 
 # ---------------------PRINT_MENU subprogram---------------------
-# this subprogram prints the menu, as well as the current settings,
-# before asking for the player's entry.
+# this subprogram prints the menu.
 PRINT_MENU:
 	li	a7, 4
 	la	a0, SEPARATOR
@@ -165,24 +154,22 @@ PRINT_MENU:
 	la	a0, MENU_SCREEN_LINE_7
 	ecall
 	
-	la	a0, MENU_SCREEN_LINE_8
-	ecall
-	
 	la	a0, MENU_SCREEN_LINE_SCR
 	ecall
 	
-	jr	ra
+	jal	PRINT_SETTINGS
 
 # ---------------------READ_ENTRY subprogram---------------------
 # this subprogram reads the player's entry.
 # there are several cases depending on the key pressed:
 # S: Start
-# T: Tutorial
 # Q: Quit
 # Any other key: the system waits for the player to type a key
 # that directs to one of the modes, unless the player successfully
 # types a cheat code (for this program, 727).
 # in that case, the system directs to Settings screen.
+# while in this subprogram, make sure the program is ran
+# at a speed of 30 instructions per second or below.
 
 # additional registers used:
 # s2: saves the KEY_CODE address
@@ -190,11 +177,10 @@ PRINT_MENU:
 # s4: saves the DISPLAY_CODE address
 # s5: saves the DISPLAY_READY address
 # s6: saves the character "S" in ASCII
-# s7: saves the character "T" in ASCII
-# s8: saves the character "Q" in ASCII
-# s9: saves the character "7" in ASCII
-# s10: saves the character "2" in ASCII
-# s11: number of characters in the cheat code, "727", input correctly
+# s7: saves the character "Q" in ASCII
+# s8: saves the character "7" in ASCII
+# s9: saves the character "2" in ASCII
+# s10: number of characters in the cheat code, "727", input correctly
 # t3, t4, t5: saves the result of polling
 # and whether the inputs and outputs are ready
 # t6: the number of characters in the cheat code to input correctly
@@ -208,10 +194,9 @@ READ_ENTRY:
     		li  	s4, DISPLAY_CODE 
     		li  	s5, DISPLAY_READY 
     		li	s6, 83
-    		li	s7, 84
-    		li	s8, 81
-    		li	s9, 55
-    		li	s10, 50
+    		li	s7, 81
+    		li	s8, 55
+    		li	s9, 50
 		li	a4, 2
 		li	t6, 3
 	WaitForKey:
@@ -227,27 +212,108 @@ READ_ENTRY:
 	# directs the player to the specific mode based on the entered character
 	Direct:  
 		beq	t3, s6, START
-		beq	t3, s7, TUTORIAL
-		beq	t3, s8, QUIT
-		rem	a3, s11, a4		# calculate s11 % 2 to check if the next character 
+		beq	t3, s7, QUIT
+		rem	a3, s10, a4		# calculate s11 % 2 to check if the next character 
 						# of the cheat code should be 7 or 2
 		beq	a3, zero, Case7
 		j	Case2
 	Case7:
-		bne	t3, s9, Reset
-		addi	s11, s11, 1
-		beq	s11, t6, SETTINGS
+		bne	t3, s8, Reset
+		addi	s10, s0, 1
+		beq	s10, t6, SETTINGS
 		j	WaitForKey
 	Case2:
-		bne	t3, s10, Reset
-		addi	s11, s11, 1
+		bne	t3, s9, Reset
+		addi	s10, s10, 1
 		j	WaitForKey
 	Reset:
-		add	s11, zero, zero
+		add	s10, zero, zero
 		j	WaitForKey
+
+# -----------------------START subprogram------------------------
 START:
-TUTORIAL:
+
+# ----------------------SETTINGS subprogram----------------------
+# additional register used:
+# s6 to s10: now saves the value 255, 60, 1500, 1, 100 for comparison
 SETTINGS:
+	li	s6, 255
+    	li	s7, 60
+    	li	s8, 1500
+    	li	s9, 1
+	li	s10, 100
+	
+	la	a0, SEPARATOR
+	ecall
+	
+	la	a0, SETTING_SCREEN_LINE_1
+	ecall
+	
+	jal	PRINT_SETTINGS
+	
+	Try1:
+		la	a0, SETTING_SCREEN_LINE_2
+		ecall
+	
+		li	a7, 5
+		ecall
+	
+		blt	a0, zero, Try1
+		blt	s6, a0, Try1
+		
+		slli	a0, a0, 16
+		and	t0, t0, a0
+	
+	Try2:
+		la	a0, SETTING_SCREEN_LINE_3
+		ecall
+	
+		li	a7, 5
+		ecall
+	
+		blt	a0, zero, Try2
+		blt	s6, a0, Try2
+				
+		slli	a0, a0, 8
+		or	t0, t0, a0
+		
+	Try3:
+		la	a0, SETTING_SCREEN_LINE_4
+		ecall
+	
+		li	a7, 5
+		ecall
+	
+		blt	a0, zero, Try3
+		blt	s6, a0, Try3
+		
+		or	t0, t0, a0
+		
+	Try4:
+		la	a0, SETTING_SCREEN_LINE_5
+		ecall
+		
+		li	a7, 5
+		ecall
+		
+		blt	a0, s7, Try4
+		blt	s8, a0, Try4
+		
+		add	t1, zero, a0
+		
+	Try5:
+		la	a0, SETTING_SCREEN_LINE_6
+		ecall
+		
+		li	a7, 5
+		ecall
+		
+		blt	a0, s9, Try5
+		blt	s10, a0, Try5
+		
+		add	t2, zero, a0
+	
+	j	PRINT_MENU
 
 # ------------------------QUIT subprogram------------------------
 # this subprogram prints the quit screen and exits the program.
@@ -279,3 +345,35 @@ QUIT:
 	
 	li	a7, 10
 	ecall
+
+# -------------------PRINT_SETTINGS subprogram-------------------
+# this subprogram prints the settings.
+PRINT_SETTINGS:
+	la	a0, MENU_SETTING_PART_1
+	ecall
+	
+	li	a7, 34
+	add	a0, zero, t0
+	ecall
+	
+	li	a7, 4
+	la	a0, MENU_SETTING_PART_2
+	ecall
+	
+	li	a7, 1
+	add	a0, zero, t1
+	ecall
+
+	li	a7, 4
+	la	a0, MENU_SETTING_PART_3
+	ecall
+	
+	li	a7, 1
+	add	a0, zero, t2
+	ecall
+		
+	li	a7, 4	
+	la	a0, MENU_SETTING_SPEED_UNIT
+	ecall
+	
+	jr	ra
