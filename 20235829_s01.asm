@@ -21,8 +21,17 @@
 # and set both Display Width and Display Height to 512 (px),
 # before connecting the tool to the program.
 
-.eqv MONITOR_SCREEN	0x10010000		# starting address of the memory portion that is
+.eqv	MONITOR_SCREEN	0x10010000		# starting address of the memory portion that is
 						# outputted to Bitmap Display.
+						
+.eqv	KEY_CODE   0xFFFF0004      		# ASCII code from keyboard, 1 byte 
+.eqv	KEY_READY  0xFFFF0000     		# = 1 if keyboard input is ready
+                                 		# Auto clear after lw 
+ 
+.eqv	DISPLAY_CODE   0xFFFF000C   		# ASCII code of the letter to show, 1 byte 
+.eqv	DISPLAY_READY  0xFFFF0008   		# = 1 if the display output is ready
+                                 		# Auto clear after sw
+                                 		
 .data
 # special lines
 	NEWLINE: 			.asciz	"\n"
@@ -80,7 +89,7 @@
 # t1: ball speed in px/s
 # t2: speed increment in px/s
 
-# a0: coordinates of the center of the ball,
+# s0: coordinates of the center of the ball,
 # with the lowest 9 bits representing the column,
 # and the 9 bits above them representing the row,
 # suppose the screen's rows and columns of pixels are numbered
@@ -89,7 +98,7 @@
 # this means that the x and y coordinates of the center
 # must both lie in the closed interval [30, 481].
 
-# a1: the moving direction of the ball.
+# s1: the moving direction of the ball.
 # it can have one of the following values:
 # 0x00000001: rightwards
 # 0xFFFFFFFF: leftwards
@@ -100,6 +109,13 @@
 # it will move the ball to the specific direction.
 # multiply one of the above value by an integer
 # to make the ball move multiple pixels at once.
+
+# s2: saves the KEY_CODE address
+# s3: saves the KEY_READY address
+# s4: saves the DISPLAY_CODE address
+# s5: saves the DISPLAY_READY address
+
+# -------------------------MAIN program--------------------------
 MAIN:
 	jal	INIT
 	jal	PRINT_MENU
@@ -111,14 +127,19 @@ MAIN:
 # ball color (t0) = #FFFFFF (pure white),
 # initial speed (t1) = 200 px/s,
 # speed increment (t2) = 20 px/s,
-# ball center position (a0) = (255, 255),
-# and moving direction (a1) = upwards.
+# ball center position (s0) = (255, 255),
+# moving direction (s1) = upwards,
+# and the registers s2, s3, s4, s5.
 INIT:
 	li	t0, 0xFFFFFF
 	li	t1, 200
 	li	t2, 20
-	li	a0, 0x0001FEFF
-	li	a1, 0xFFFFFE00
+	li	s0, 0x0001FEFF
+	li	s1, 0xFFFFFE00
+	li  	s2, KEY_CODE
+	li  	s3, KEY_READY 
+    	li  	s4, DISPLAY_CODE 
+    	li  	s5, DISPLAY_READY 
 	jr	ra
 
 # ---------------------PRINT_MENU subprogram---------------------
@@ -169,8 +190,19 @@ PRINT_MENU:
 # types a cheat code (for this program, 727).
 # in that case, the system directs to Settings screen.
 READ_ENTRY:
-
-	
+WaitForKey:   
+	lw      t1, 0(a1)               # t1 = [a1] = KEY_READY 
+	beq     t1, zero, WaitForKey    # if t1 == 0 then Polling 
+ReadKey:      
+	lw      t0, 0(a0)               # t0 = [a0] = KEY_CODE 
+WaitForDis:   
+	lw      t2, 0(s1)               # t2 = [s1] = DISPLAY_READY 
+	beq     t2, zero, WaitForDis    # if t2 == 0 then polling  
+Branch:      
+	addi    t0, t0, 1               # change input key 
+ShowKey: 
+	sw      t0, 0(s0)               # show key                
+	j       READ_ENTRY
 
 # ------------------------QUIT subprogram------------------------
 # this subprogram prints the quit screen and exits the program.
