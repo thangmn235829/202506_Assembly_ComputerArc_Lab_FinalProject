@@ -64,7 +64,7 @@
 	PLAY_SCREEN_LINE_9:		.asciz	"R: return to Menu\n"
 	PLAY_SCREEN_ERROR_SPEED_DOWN:	.asciz	"ERROR: can't reduce speed beyond the limit (60px/s)\n"
 	PLAY_SCREEN_ERROR_SPEED_UP:	.asciz	"ERROR: can't increase speed beyond the limit (1500px/s)\n"
-# setting interface
+# setting interface, not implemented elsewhere yet
 	SETTING_SCREEN_LINE_1:		.asciz	"GAME SETTINGS\n"
 	SETTING_SCREEN_LINE_2:		.asciz	"Ball RGB color (red, 0-255): "
 	SETTING_SCREEN_LINE_3:		.asciz	"Ball RGB color (green, 0-255): "
@@ -115,8 +115,7 @@
 # initial speed (t1) = 200 px/s,
 # speed increment (t2) = 20 px/s,
 # ball center position (s0) = (255, 255),
-# moving direction (s1) = upwards,
-# and the registers s2, s3, s4, s5.
+# moving direction (s1) = upwards.
 INIT:
 	li	t0, 0xFFFFFF
 	li	t1, 200
@@ -173,14 +172,8 @@ PRINT_MENU:
 # s5: saves the DISPLAY_READY address
 # s6: saves the character "S" in ASCII
 # s7: saves the character "Q" in ASCII
-# s8: saves the character "7" in ASCII
-# s9: saves the character "2" in ASCII
-# s10: number of characters in the cheat code, "727", input correctly
 # t3, t4, t5: saves the result of polling
 # and whether the inputs and outputs are ready
-# t6: the number of characters in the cheat code to input correctly
-# to show the settings
-# a3: temporary saves 2 as the modulo for the s11 % 2 operation below
 READ_ENTRY:
 	ReadEntry_Init:
 		li  	s2, KEY_CODE
@@ -214,8 +207,8 @@ READ_ENTRY:
 START:
 	Start_Init:
 		li	s6, 512
-		li	s9, 870
-		li	s10, 930
+		li	s9, 840
+		li	s10, 900
 		li	t6, 4
 		li	t5, 20
 		
@@ -247,7 +240,7 @@ START:
 		la	a0, PLAY_SCREEN_LINE_9
 		ecall
 		
-		li	t5, MONITOR_SCREEN
+		li	t4, MONITOR_SCREEN
 	Start_Loop:
 		srli	s4, s0, 9
 		andi	s5, s0, 0x1FF
@@ -258,7 +251,7 @@ START:
 		add	s2, s2, s4
 		add	t2, t2, s4
 		add	s3, s3, s5
-		add	t3, t3, t5
+		add	t3, t3, s5
 		jal	DrawCircle
 		
 		li	s2, -30
@@ -287,29 +280,30 @@ START:
 		mul	s11, s2, s6
 		add	s11, s11, s3
 		mul	s11, s11, t6
-		add	s11, s11, t5
+		add	s11, s11, t4
 		blt	s7, s9, cont
 		blt	s10, s7, cont
 		sw	t0, 0(s11)
 	cont:
 		addi	s3, s3, 1
-		bne	s3, s5, DrawCircle
+		bne	s3, t3, DrawCircle
 		addi	s2, s2, 1
 		li	s3, -60
 		add	s3, s3, s5
-		bne	s2, s4, DrawCircle
+		bne	s2, t2, DrawCircle
 		jr	ra
 	DeleteCircle:
 		mul	s11, s2, s6
 		add	s11, s11, s3
 		mul	s11, s11, t6
-		add	s11, s11, t5
+		add	s11, s11, t4
 		sw	zero, 0(s11)
 		addi	s3, s3, 1
-		bne	s3, s6, DeleteCircle
+		bne	s3, t3, DeleteCircle
 		addi	s2, s2, 1
-		li	s3, 0
-		bne	s2, s6, DeleteCircle
+		li	s3, -60
+		add	s3, s3, s5
+		bne	s2, t2, DeleteCircle
 		jr	ra
 		
 # ----------------------SETTINGS subprogram----------------------
