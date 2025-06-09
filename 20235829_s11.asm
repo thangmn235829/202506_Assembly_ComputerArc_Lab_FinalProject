@@ -24,7 +24,7 @@
 	mess_a: 	.asciz 	"Enter a:"
 	mess_b: 	.asciz 	"Enter b:"
 	mess_c: 	.asciz 	"Enter c:"
-	mess_color:	.asciz 	"Color code:\n1->5: red, orange, yellow, green, blue;\nothers:white\n"
+	mess_color:	.asciz 	"Color code:\n1->5: red, orange, yellow, green, blue;\nothers: white\n"
 .text 
 	li  	s0, MONITOR_SCREEN
 	li  	s1, WHITE	# your default color
