@@ -10,7 +10,7 @@
 # s0: MONITOR_SCREEN
 # s1: color
 # s2: pixel position
-# s3: limit of the function value limit
+# s3: limit of the px value
 # s4: number of cols
 # s5: a
 # s6: b
@@ -42,7 +42,7 @@ DRAW_Y_AXIS:
 	li	s11, 4
 	mul	s11, s5, s11
 	add	s11, s0, s11
-	jal 	PRINT_COLOR
+	jal 	PRINT_COLOR	# input: s11
 	add 	s5, s5, s4
 	j 	DRAW_Y_AXIS
 # reset s5 for its original use
@@ -51,11 +51,15 @@ END_DRAW_Y_AXIS:
 	j 	DRAW_FUNCTION
 	
 END_DRAW_FUNCTION:
+# now we start asking for input
 	li 	a7, 50		# makes a confirm dialog
 	la 	a0, question
+	beq	t4, zero, FirstTime 
 	ecall
 	bgt 	a0, zero, DONE
 	
+FirstTime:
+	li	t4, 1
 	li 	a7, 4 
 	la 	a0, mess_a
 	ecall 
@@ -111,24 +115,22 @@ Blue:
 	li	s1, BLUE
 START_DRAWING:	
 	j	DRAW_FUNCTION
-	#---------
-	j	DONE
 #--------------------------------
 DRAW_FUNCTION:
 	addi	t0, s9, 0
 Loop:
-	bgt	t0, s10, EndLoop
+	bgt	t0, s10, End_Loop
 	jal	CALCULATE_FUNCTION_VALUES # output:t6
-	bge	t6, s3, OutsideGraph
-	blt	t6, zero, OutsideGraph
+	bge	t6, s3, Outside_Graph
+	blt	t6, zero, Outside_Graph
 	li 	s11, 4
 	mul	s11, t6, s11
 	add 	s11, s0, s11
 	jal 	PRINT_COLOR
-OutsideGraph:
-	addi	t0,t0,1
+Outside_Graph:
+	addi	t0, t0, 1
 	j	Loop
-EndLoop:
+End_Loop:
 	j 	END_DRAW_FUNCTION
 #----------------------
 # additional register used
@@ -137,7 +139,6 @@ EndLoop:
 # return none
 PRINT_COLOR:
 	sw	s1, 0(s11)
-#	addi s0,s0,4
 	jr	ra
 #----------------------
 # additional register used
